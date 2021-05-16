@@ -1,7 +1,7 @@
 import * as puppeteer from "puppeteer"
 import {fetchRentals, Rental} from "./hsl"
 import {submitKaupunkifillariStats, Submission} from "./kilometrikisa"
-import {DateTime} from "luxon";
+import {DateTime, Interval} from "luxon";
 
 const HSL_USERNAME = requireEnv("HSL_USERNAME")
 const HSL_PASSWORD = requireEnv("HSL_PASSWORD")
@@ -17,19 +17,24 @@ async function main() {
 
     try {
         const page = await browser.pages().then(([first, ...rest]) => first)
-        const rentals = await fetchRentals(page, HSL_USERNAME, HSL_PASSWORD)
-        const submissions = groupRentalsIntoDailyKilometrikisaSubmissions(rentalsBeforeToday(rentals))
+        const rentalsThisMonth = rentalsInThisMonth(await fetchRentals(page, HSL_USERNAME, HSL_PASSWORD))
+        const submissions = groupRentalsIntoDailyKilometrikisaSubmissions(rentalsThisMonth)
         await submitKaupunkifillariStats(page, submissions, KILOMETRIKISA_USERNAME, KILOMETRIKISA_PASSWORD)
     } finally {
         await browser.close()
     }
 }
 
+function rentalsInThisMonth(rentals: ReadonlyArray<Rental>): Rental[] {
+    const now = DateTime.now()
+    const interval = Interval.fromDateTimes(now.startOf('month'), now.endOf('month'))
+    return rentals.filter(r => interval.contains(r.date))
+}
+
 function rentalsBeforeToday(rentals: ReadonlyArray<Rental>): Rental[] {
     const today = DateTime.now().startOf("day")
     return rentals.filter(r => r.date < today)
 }
-
 
 function groupRentalsIntoDailyKilometrikisaSubmissions(rentals: ReadonlyArray<Rental>): Map<string, Submission> {
     const grouped = groupBy(rentals, r => r.date.toFormat("yyyy-MM-dd"))
