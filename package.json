@@ -1,0 +1,11 @@
+{
+  "dependencies": {
+    "luxon": "^1.27.0",
+    "puppeteer": "^9.1.1",
+    "ts-node": "^9.1.1",
+    "typescript": "^4.2.4"
+  },
+  "devDependencies": {
+    "@types/luxon": "^1.26.5"
+  }
+}
